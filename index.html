@@ -120,6 +120,18 @@
     <script>
         let isExamActive = false;
         
+        // Fungsi untuk masuk ke mode Full Screen
+        function enterFullScreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log("Fullscreen ditolak:", err));
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+        
         // =========================================================
         // PENTING: GANTI URL DI BAWAH INI DENGAN URL WEB APP ANDA
         // =========================================================
@@ -213,6 +225,9 @@
                     // Set URL Iframe
                     document.getElementById('exam-frame').src = decodedUrl;
                     
+                    // MASUK KE MODE FULL SCREEN
+                    enterFullScreen();
+                    
                     isExamActive = true;
                     // Jeda sejenak sebelum mengaktifkan sensor keamanan
                     setTimeout(activateAntiCheat, 2000);
@@ -233,11 +248,22 @@
 
         function activateAntiCheat() {
             document.addEventListener('visibilitychange', checkVisibility);
+            
+            // Tambahan: Deteksi jika peserta keluar dari mode Fullscreen
+            document.addEventListener('fullscreenchange', checkFullScreen);
+            document.addEventListener('webkitfullscreenchange', checkFullScreen);
         }
 
         function checkVisibility() {
             if (document.visibilityState !== 'visible') {
                 triggerCheatDetected("Aplikasi di-minimize atau background");
+            }
+        }
+
+        // Fungsi baru untuk mendeteksi keluar dari layar penuh
+        function checkFullScreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                triggerCheatDetected("Keluar dari mode Layar Penuh (Full Screen)");
             }
         }
 
@@ -250,6 +276,13 @@
             const iframe = document.getElementById('exam-frame');
             iframe.src = "about:blank";
             
+            // Keluar dari fullscreen otomatis jika pelanggaran terjadi (agar peringatan terlihat rapi di PC/HP)
+            if (document.exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen && document.webkitFullscreenElement) {
+                document.webkitExitFullscreen();
+            }
+            
             document.getElementById('exam-page').classList.add('hidden');
             document.getElementById('exam-page').classList.remove('flex');
             
@@ -257,6 +290,8 @@
             document.getElementById('cheat-page').classList.add('flex');
 
             document.removeEventListener('visibilitychange', checkVisibility);
+            document.removeEventListener('fullscreenchange', checkFullScreen);
+            document.removeEventListener('webkitfullscreenchange', checkFullScreen);
         }
     </script>
 </body>
